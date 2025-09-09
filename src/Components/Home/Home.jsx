@@ -22,7 +22,7 @@ export default function Home() {
             Manage your orders, track deliveries, and view your performance insights at a glance.
           </p>
           <Link
-            to="/orders"
+            to="/OrderStatus"
             className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition"
           >
             Go to Orders
