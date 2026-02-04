@@ -7,7 +7,8 @@ import {
     updateSellerPassword,
     updateSellerProfile,
     getSellerProfile,
-    refreshTokenHandler
+    refreshTokenHandler,
+    removeSellerProfile
 } from "../controllers/seller.controller.js"
 
 import { verifySellerJWT } from "../middlewares/sellerAuth.middleware.js";
@@ -45,7 +46,7 @@ router.route('/me')
 router.route('/refresh-token')
     .put(verifySellerJWT, refreshTokenHandler)
 
-router.route('/')
-
+router.route('/remove-profile')
+    .delete(verifySellerJWT, removeSellerProfile)
 
 export { router as sellerRouter }

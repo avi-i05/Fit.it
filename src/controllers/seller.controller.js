@@ -292,5 +292,6 @@ export {
     updateSellerPassword,
     updateSellerProfile,
     getSellerProfile,
-    refreshTokenHandler
+    refreshTokenHandler,
+    removeSellerProfile
 }
