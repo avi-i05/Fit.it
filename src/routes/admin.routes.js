@@ -30,10 +30,10 @@ router.route('/profile')
     .get(verifyAdminJWT, getAdminProfile);
 
 router.route('/profile/update')
-    .put(verifyAdminJWT, updateProfile);
+    .patch(verifyAdminJWT, updateProfile);
 
 router.route('/profile/update-password')
-    .put(verifyAdminJWT, updatePassword);
+    .patch(verifyAdminJWT, updatePassword);
 
 router.route('/delete')
     .delete(verifyAdminJWT, deleteAdmin);
