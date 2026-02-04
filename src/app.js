@@ -1,0 +1,40 @@
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+
+const app = express();
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true
+}));
+
+app.use(express.json({
+    limit: '20kb'
+}));
+app.use(express.urlencoded({ 
+    limit: '10kb',
+    extended: true
+ }));
+app.use(express.static('public'));
+
+app.use(cookieParser());
+
+
+// routes
+
+
+import { consumerRouter } from './routes/consumer.routes.js';
+import { sellerRouter} from './routes/seller.routes.js';
+import { productRouter } from './routes/product.routes.js';
+import { categoryRouter } from './routes/categories.routes.js';
+import { adminRouter } from './routes/admin.routes.js';
+
+app.use('/api/v1/consumers', consumerRouter);
+app.use('/api/v1/partners', sellerRouter);
+app.use('/api/v1/products', productRouter);
+app.use('/api/v1/categories', categoryRouter);
+app.use('/api/v1/admin', adminRouter);
+
+
+
+export default app;
