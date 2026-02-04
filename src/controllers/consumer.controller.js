@@ -149,7 +149,7 @@ const handleRefreshToken = asyncHandler(async(req, res) => {
 
         // console.log("Decoded refresh token: ", decodedToken);
 
-        const consumer = await Consumer.findById(decodedToken?._id).select('-password -refreshToken');
+        const consumer = await Consumer.findById(decodedToken?._id);
         // console.log("Consumer found: ", consumer);
 
         if(consumer.refreshToken !== incomingRefreshToken){
@@ -157,9 +157,9 @@ const handleRefreshToken = asyncHandler(async(req, res) => {
         }
 
 
-        const { accessToken, newRefreshToken } = await generateTokens(consumer?._id);
+        const { accessToken, newRefreshToken } = await generateTokens(consumer?.id);
 
-        console.log("Generated tokens: ", { accessToken, newRefreshToken });
+        // console.log("Generated tokens: ", { accessToken, newRefreshToken });
 
         const options = {
             httpOnly: true,
@@ -171,8 +171,7 @@ const handleRefreshToken = asyncHandler(async(req, res) => {
             .cookie("refreshToken", newRefreshToken, options)
             .json(
                 new ApiResponse(200, {
-                    accessToken: accessToken,
-                    refreshToken: newRefreshToken
+                    accessToken
                 }), "New token generated Successfully"
             );
     } catch (error) {

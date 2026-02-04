@@ -155,7 +155,7 @@ const logoutSeller = asyncHandler(async(req, res) =>{
 })
 
 
-const refreshTokenHnadler = asyncHandler(async(req, res) => {
+const refreshTokenHandler = asyncHandler(async(req, res) => {
     const incomingRefreshToken = req.cookies?.refreshToken;
 
     if(!incomingRefreshToken){
@@ -194,16 +194,14 @@ const updateSellerProfile = asyncHandler(async(req, res) => {
 
     let address = {};
 
-    if (!req.body.address) {
-        throw new ApiError(400, "Address is required");
-    } else {
+    if(req.body.address){
         address = JSON.parse(req.body.address);
     }
 
     if (
         [fullName, email, phoneNumber, brandName].some(field => field === "")
     ) {
-        throw new ApiError(400, "All fields are required");
+        throw new ApiError(400, "field is required");
     }
 
     const seller = await Seller.findByIdAndUpdate(req.seller?._id, {
@@ -269,7 +267,21 @@ const getSellerProfile = asyncHandler(async(req, res) => {
 
 })
 
+const removeSellerProfile = asyncHandler(async(req, res) => {
+    const seller = await Seller.findByIdAndDelete(req.seller?._id);
 
+    if(!seller){
+        throw new ApiError(404, "Seller Profile Not Found");
+    }
+
+    res.status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(
+            new ApiResponse(200, null, "Seller Profile Deleted Successfully.")
+        );
+
+})
 
 
 
@@ -280,5 +292,5 @@ export {
     updateSellerPassword,
     updateSellerProfile,
     getSellerProfile,
-    refreshTokenHnadler
+    refreshTokenHandler
 }
