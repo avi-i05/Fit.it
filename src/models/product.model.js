@@ -48,7 +48,7 @@ const productSchema = new Schema(
     productCategory: {
       type: Schema.Types.ObjectId,
       ref: "Category",
-
+      required: true,
     },
   },
   { timestamps: true }

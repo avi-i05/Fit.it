@@ -110,14 +110,7 @@ const createProductVariant = asyncHandler( async(req, res) => {
 
 const getAllProducts = asyncHandler(async(req, res) => {
     const products = await Product.aggregate([
-        {
-            $lookup: {
-                from: "productcategory",
-                localField: "productCategory",
-                foreignField: "_id",
-                as: "category"
-            }
-        }
+        
     ]);
 
     if(!products || products.length === 0){
@@ -138,9 +131,6 @@ const getCurrentSellerProducts = asyncHandler(async(req, res) => {
     }
     return res.status(200).json(new ApiResponse(200, products, "Products retrieved successfully"));
 });
-
-
-
 
 
 

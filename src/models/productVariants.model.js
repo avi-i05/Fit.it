@@ -1,44 +1,54 @@
 import mongoose from "mongoose";
 
-const productVariantSchema = new mongoose.Schema({
+const productVariantSchema = new mongoose.Schema(
+  {
     product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
-        index: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+      index: true,
     },
     price: {
-        type: Number,
-        required: true
+      type: Number,
+      required: true,
     },
     stock: {
-        type: Number,
-        required: true
+      type: Number,
+      required: true,
     },
     size: {
-        type: String,
-        required: true,
-        enum: ["XS","S", "M", "L", "XL", "XXL"]
-
+      type: String,
+      required: true,
+      enum: ["XS", "S", "M", "L", "XL", "XXL"],
     },
     color: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     sku: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
     images: {
-        type: [String],
-        default: []
+      type: [String],
+      default: [],
     },
     isActive: {
       type: Boolean,
-      default: true
-    }
-},{timestamps: true});
+      default: true,
+    },
+    audience: {
+      type: String,
+      enum: ["men", "women", "kids", "unisex"],
+      required: true,
+      index: true,
+    },
+  },
+  { timestamps: true }
+);
 
-
-export const ProductVariant = mongoose.model("ProductVariant", productVariantSchema);
+export const ProductVariant = mongoose.model(
+  "ProductVariant",
+  productVariantSchema
+);
