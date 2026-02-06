@@ -1,18 +1,33 @@
 import { Router } from "express";
 
 import{
-    productRegister,
-    getCurrentSellerProducts
+
+    createSingleProduct,
+    createMultipleProducts,
+    updateProduct,
+    updateVariant,
+    getAllProducts,
+    getProductsByCategory,
+    getProductsByFilters
 } from "../controllers/product.controller.js";
 import { verifySellerJWT } from "../middlewares/sellerAuth.middleware.js";
 import { upload } from "../middlewares/upload.middleware.js";
 
 const router = Router();
 
-router.route('/register')
-    .post(verifySellerJWT, upload.fields([{ name: 'productImages', maxCount: 5 }]), productRegister);
+router.route('/register/single')
+    .post(verifySellerJWT, createSingleProduct)
 
-router.route('/my-products')
-    .get(verifySellerJWT, getCurrentSellerProducts);
+router.route('/register/multiple')
+    .post(verifySellerJWT, createMultipleProducts);
+
+router.route('/all')
+    .get(getAllProducts);
+
+router.route('/category')
+    .get(getProductsByCategory);
+
+router.route('/filters')
+    .get(getProductsByFilters);
 
 export { router as productRouter };

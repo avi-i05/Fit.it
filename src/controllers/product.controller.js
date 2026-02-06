@@ -3,139 +3,311 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { Product } from "../models/product.model.js";
 import { ProductVariant } from "../models/productVariants.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import mongoose from "mongoose";
 
+const createSingleProduct = asyncHandler(async (req, res) => {
+  const { product, productVariants } = req.body;
 
-const productRegister = asyncHandler(async (req, res) => {
-    const { productName, description, slug, productCategory} = req.body;
+  if (
+    !product ||
+    !Array.isArray(productVariants) ||
+    productVariants.length === 0
+  ) {
+    throw new ApiError(400, "Product and product variants are required");
+  }
 
-    let highlights = {};
+  const sellerId = req.seller?._id;
+  if (!sellerId) {
+    throw new ApiError(401, "Unauthorized");
+  }
 
-    if (req.body.highlights) {
-        try {
-            highlights = JSON.parse(req.body.highlights);
-        } catch (error) {
-            throw new ApiError(400, "Invalid highlights format");
-        }
-}
+  if (product.length > 50) {
+    throw new ApiError(400, "Max 50 products per request");
+  }
 
+  let createdProduct;
 
-    if(
-        [productName, description, slug, highlights.sectionTitle, highlights.type, highlights.content, productCategory].some(field => !field)
-    )
-    {
-        throw new ApiError(400, "All fields are required");
-    }
+  try {
+    createdProduct = await Product.create({
+      ...product,
+      productSeller: sellerId,
+    });
 
-    const sellerId = req.seller._id;
+    const variantsWithProduct = productVariants.map((v) => ({
+      ...v,
+      product: createdProduct._id,
+    }));
 
-    if(!sellerId){
-        throw new ApiError(400, "Seller not found");
-    }
+    await ProductVariant.insertMany(variantsWithProduct);
 
-    // console.log("productImages", req.files?.productImages);
-
-    const productImagesPath = req.files?.productImages?.map(file => file.path);
-
-
-    if(!productImagesPath || productImagesPath.length === 0) {
-        throw new ApiError(400, "Product images are required");
-    }
-
-    const uploadedImages = await Promise.all(
-        productImagesPath.map(async (imagePath) => {
-            const uploadResult = await uploadOnCloudinary(imagePath);
-            if (!uploadResult) {
-                throw new ApiError(400, "Failed to upload product image");
-            }
-            return uploadResult.url;
-        })
+    return res.status(201).json(
+      new ApiResponse(
+        201,
+        {
+          productId: createdProduct._id,
+          variantsCount: variantsWithProduct.length,
+        },
+        "Product and variants created successfully"
+      )
     );
+  } catch (error) {
+    if (createdProduct?._id) {
+      await ProductVariant.deleteMany({ product: createdProduct._id });
+      await Product.deleteOne({ _id: createdProduct._id });
+    }
 
-    
+    throw error;
+  }
+});
 
-    const product = await Product.create({
-        productName,
-        description,
-        slug,
-        highlights,
+const createMultipleProducts = asyncHandler(async (req, res) => {
+  const { products } = req.body;
+
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new ApiError(400, "Products array is required");
+  }
+
+  const sellerId = req.seller?._id;
+  if (!sellerId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const results = [];
+
+  for (let i = 0; i < products.length; i++) {
+    const { product, variants } = products[i];
+
+    if (!product || !Array.isArray(variants) || variants.length === 0) {
+      results.push({
+        index: i,
+        status: "failed",
+        reason: "Product or variants missing",
+      });
+      continue;
+    }
+
+    let createdProduct = null;
+
+    try {
+      createdProduct = await Product.create({
+        ...product,
         productSeller: sellerId,
-        productImages: uploadedImages,
-        productCategory: req.body.productCategory
-    });
+      });
 
-    return res.status(201).json(new ApiResponse(201, product, "Product created successfully" ));
+      const variantsWithProduct = variants.map((v) => ({
+        ...v,
+        product: createdProduct._id,
+      }));
+
+      await ProductVariant.insertMany(variantsWithProduct);
+
+      results.push({
+        index: i,
+        status: "success",
+        productId: createdProduct._id,
+        variantsCount: variantsWithProduct.length,
+      });
+    } catch (error) {
+      if (createdProduct?._id) {
+        await ProductVariant.deleteMany({ product: createdProduct._id });
+        await Product.deleteOne({ _id: createdProduct._id });
+      }
+
+      results.push({
+        index: i,
+        status: "failed",
+        reason: error.message,
+      });
+    }
+  }
+
+  return res
+    .status(207)
+    .json(new ApiResponse(207, results, "Bulk product creation completed"));
 });
 
+const updateProduct = asyncHandler(async(req, res) =>{
+    const { productId, updates } = req.body;
 
-
-const createProductVariant = asyncHandler( async(req, res) => {
-    const { product, price, stock, size, color, sku, images, isActive } = req.body;
-
-    if (
-        [product, price, stock, size, color, sku, images].some(field => !field)
-    ) {
-        throw new ApiError(400, "All fields are required");
+    if(!productId || !updates) {
+        throw new ApiError(400, "Product ID and updates are required");
     }
 
-    const imagePaths = req.files?.images?.map(file => file.path);
-
-    if (!imagePaths || imagePaths.length === 0) {
-        throw new ApiError(400, "Product variant images are required");
-    }
-
-    const uploadedImages = await Promise.all(
-        imagePaths.map(async (imagePath) => {
-            const uploadResult = await uploadOnCloudinary(imagePath);
-            if (!uploadResult) {
-                throw new ApiError(400, "Failed to upload product variant image");
-            }
-            return uploadResult.url;
-        })
-    );
-
-    const productVariant = await ProductVariant.create({
-        product,
-        price,
-        stock,
-        size,
-        color,
-        sku,
-        images: uploadedImages,
-        isActive
-    });
-
-    return res.status(201).json(new ApiResponse(201, productVariant, "Product variant created successfully"));
-});
-
-const getAllProducts = asyncHandler(async(req, res) => {
-    const products = await Product.aggregate([
-        
-    ]);
-
-    if(!products || products.length === 0){
-        throw new ApiError(404, "No products found");
-    }
-
-   return res.status(200).json(new ApiResponse(200, products, "Products retrieved successfully"));
-   
-});
-
-const getCurrentSellerProducts = asyncHandler(async(req, res) => {
-    if(!req.seller || !req.seller._id){
+    const sellerId = req.seller?._id;
+    if (!sellerId) {
         throw new ApiError(401, "Unauthorized");
     }
-    const products = await Product.find({ productSeller: req.seller._id });
-    if(!products || products.length === 0){
-        throw new ApiError(404, "No products found for the current seller");
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+        productId,
+        { $set: updates },
+        { new: true }
+    );
+});
+
+const updateVariant = asyncHandler(async (req, res) => {
+    const { variantId, updates } = req.body;
+
+    if (!variantId || !updates) {
+        throw new ApiError(400, "Variant ID and updates are required");
     }
-    return res.status(200).json(new ApiResponse(200, products, "Products retrieved successfully"));
+
+    const sellerId = req.seller?._id;
+    if (!sellerId) {
+        throw new ApiError(401, "Unauthorized");
+    }
+
+    const updatedVariant = await ProductVariant.findByIdAndUpdate(
+        variantId,
+        { $set: updates },
+        { new: true }
+    );
+
+    if (!updatedVariant) {
+        throw new ApiError(404, "Variant not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedVariant, "Variant updated successfully")
+    );
+});
+
+const getAllProducts = asyncHandler(async (req, res) => {
+  const products = await Product.aggregate([
+    {
+      $lookup: {
+        from: "productvariants",
+        localField: "_id",
+        foreignField: "product",
+        as: "variants"
+      }
+    },
+    {
+      $sort: { createdAt: -1 }
+    }
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(200, products, "Products fetched successfully")
+  );
+});
+
+const getProductsByCategory = asyncHandler(async (req, res) => {
+  const { category } = req.query;
+
+  const matchStage = {};
+  if (category) {
+    matchStage.productCategory = new mongoose.Types.ObjectId(category);
+  }
+
+  const products = await Product.aggregate([
+    { $match: matchStage },
+    {
+      $lookup: {
+        from: "productvariants",
+        let: { productId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$product", "$$productId"] },
+              isActive: true
+            }
+          }
+        ],
+        as: "variants"
+      }
+    },
+    {
+      $addFields: {
+        minPrice: { $min: "$variants.price" },
+        totalStock: { $sum: "$variants.stock" }
+      }
+    },
+    { $match: { "variants.0": { $exists: true } } }
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(200, products, "Products fetched")
+  );
 });
 
 
+const getProductsByFilters = asyncHandler(async (req, res) => {
+  const {
+    search,
+    size,
+    color,
+    category,
+  } = req.query;
 
-export {
-    productRegister,
-    createProductVariant,
-    getCurrentSellerProducts
-};
+
+
+  const productMatch = {};
+
+  if (search) {
+    productMatch.productName = {
+      $regex: search,
+      $options: "i"
+    };
+  }
+
+  if (category) {
+    productMatch.productCategory = category;
+  }
+
+  const variantMatch = {
+    isActive: true
+  };
+
+  if (size) {
+    variantMatch.size = size;
+  }
+
+  if (color) {
+    variantMatch.color = color;
+  }
+
+  const products = await Product.aggregate([
+    { $match: productMatch },
+
+    {
+      $lookup: {
+        from: "productvariants",
+        let: { productId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$product", "$$productId"] },
+              ...variantMatch
+            }
+          }
+        ],
+        as: "variants"
+      }
+    },
+
+    {
+      $match: {
+        "variants.0": { $exists: true }
+      }
+    },
+
+    {
+      $addFields: {
+        minPrice: { $min: "$variants.price" },
+        totalStock: { $sum: "$variants.stock" }
+      }
+    },
+
+    { $sort: { createdAt: -1 } },
+
+
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(200, products, "Products fetched successfully")
+  );
+});
+
+
+export { createSingleProduct, createMultipleProducts, updateProduct, updateVariant, getAllProducts, getProductsByCategory, getProductsByFilters };
