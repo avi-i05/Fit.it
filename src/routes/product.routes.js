@@ -30,4 +30,10 @@ router.route('/category')
 router.route('/filters')
     .get(getProductsByFilters);
 
+router.route('/update/product/:productId')
+    .patch(verifySellerJWT, updateProduct);
+
+router.route('/update/variant/:variantId')
+    .patch(verifySellerJWT, updateVariant);
+
 export { router as productRouter };
