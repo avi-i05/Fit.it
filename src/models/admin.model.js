@@ -39,7 +39,7 @@ adminSchema.methods.isPasswordCorrect = async function(password){
 adminSchema.methods.generateAccessToken = function(){
     return jwt.sign(
         {
-            id: this._id,
+            _id: this._id,
             email: this.email
         },
         process.env.ACCESS_TOKEN_SECRET,
@@ -52,7 +52,7 @@ adminSchema.methods.generateAccessToken = function(){
 adminSchema.methods.generateRefreshToken = function(){
     return jwt.sign(
         {
-            id: this._id,
+            _id: this._id,
         },
         process.env.REFRESH_TOKEN_SECRET,
         {

@@ -11,7 +11,9 @@ import {
     getConsumerAddresses,
     updateConsumerAddress,
     deleteConsumerAddress,
-    deleteConsumerProfile
+    deleteConsumerProfile,
+    getAllConsumers,
+    getConsumerById
 } from "../controllers/consumer.controller.js";
 
 import { verifyConsumerJWT } from "../middlewares/consumerAuth.middleware.js";
@@ -56,4 +58,8 @@ router.route("/delete-address")
 router.route("/delete-profile")
     .delete(verifyConsumerJWT, deleteConsumerProfile);
 
+router.route("/all-consumers")
+    .get(getAllConsumers); 
+router.route("/consumer/:id")
+    .get(getConsumerById);
 export { router as consumerRouter };

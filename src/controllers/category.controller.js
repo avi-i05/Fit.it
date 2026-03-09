@@ -2,6 +2,7 @@ import { ProductCategory } from "../models/productCategory.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import slugify from "slugify";
 
 
 const createCategory = asyncHandler(async(req, res) => {
@@ -75,8 +76,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
 });
 
 const getAllCategories = asyncHandler(async (req, res) => {
-    const categories = await ProductCategory.find({
-    });
+    const categories = await ProductCategory.find({});
     return res
         .status(200)
         .json(new ApiResponse(200, categories, "Categories retrieved successfully"));
@@ -100,6 +100,53 @@ const getSubCategories = asyncHandler(async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, subCategories, "Subcategories retrieved successfully"));
 })
+const createCategoryWithSubCategory = asyncHandler(async (req, res) => {
+
+  const { categoryName, parentCategory } = req.body;
+
+  if (!categoryName) {
+    throw new Error("Category name is required");
+  }
+
+  let parentSlug = "";
+
+  if (parentCategory) {
+    const parent = await ProductCategory.findById(parentCategory);
+
+    if (!parent) {
+      throw new Error("Parent category not found");
+    }
+
+    parentSlug = parent.categorySlug;
+  }
+
+  const baseSlug = slugify(categoryName, {
+    lower: true,
+    strict: true,
+    trim: true
+  });
+
+  let slug = parentSlug
+    ? `${parentSlug}-${baseSlug}`
+    : baseSlug;
+
+  let count = 1;
+
+  while (await ProductCategory.findOne({ categorySlug: slug })) {
+    slug = `${parentSlug ? parentSlug + "-" : ""}${baseSlug}-${count++}`;
+  }
+
+  const category = await ProductCategory.create({
+    categoryName,
+    categorySlug: slug,
+    parentCategory: parentCategory || null
+  });
+
+  return res.status(201).json(
+    new ApiResponse(201, category, "Category created successfully")
+  );
+
+});
 
 export {
     createCategory,
@@ -107,5 +154,7 @@ export {
     deleteCategory,
     getAllCategories,
     getCategoryById,
-    getSubCategories
+    getSubCategories,
+    createCategoryWithSubCategory
+
 };

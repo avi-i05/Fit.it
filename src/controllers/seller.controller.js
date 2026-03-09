@@ -21,69 +21,78 @@ const generateTokens = async(sellerId) => {
 }
 
 const registerSeller = asyncHandler(async (req, res) => {
-    const { fullName, email, sellerType, phoneNumber, password, brandName, govtID, gstNumber } = req.body;
+
+    const { fullName, email, sellerType, storeName, phoneNumber, password, brandName, govtID, gstNumber } = req.body;
 
     let address = {};
-
-    
-    if(!req.body.address){
+    if (!req.body.address) {
         throw new ApiError(400, "Address is required");
     } else {
         address = JSON.parse(req.body.address);
     }
 
+    let location = {};
+    if (!req.body.location) {
+        throw new ApiError(400, "Location is required");
+    } else {
+        location = JSON.parse(req.body.location);
+    }
+
     if (
-        [fullName, email, sellerType, phoneNumber, password, brandName, govtID, gstNumber].some(field => field.trim() === "")
+        [fullName, email, sellerType, phoneNumber, storeName, password, brandName, govtID]
+        .some(field => !field)
     ) {
         throw new ApiError(400, "All fields are required");
     }
 
     const exitingSeller = await Seller.findOne({
-        $or: [
-            {email},
-            {govtID},
-            {gstNumber}
-        ]
-    })
+        $or: [{ email }, { govtID }, { gstNumber }]
+    });
 
-    // console.log(exitingSeller)
-
-    if(exitingSeller){
+    if (exitingSeller) {
         throw new ApiError(400, "Seller already exists");
     }
 
-    // console.log("req.files", req.files);
+    const govtIDImagePath = req.files?.govtIDImage?.[0]?.path;
+    const ownerImagePath = req.files?.ownerImage?.[0]?.path;
+    const storeImagePath = req.files?.storeImage?.[0]?.path;
 
-    const govtIDImagePath = req.files?.govtIDImage[0]?.path;
-    if(!govtIDImagePath){
-        throw new ApiError(400, "Government ID image is required");
+    if (!govtIDImagePath || !ownerImagePath || !storeImagePath) {
+        throw new ApiError(400, "All images are required");
     }
 
     const uploadGovtIdImage = await uploadOnCloudinary(govtIDImagePath);
-    if(!uploadGovtIdImage){
-        throw new ApiError(400, "Failed to upload Government ID image");
-    }  
+    const uploadOwnerImage = await uploadOnCloudinary(ownerImagePath);
+    const uploadStoreImage = await uploadOnCloudinary(storeImagePath);
+
+    if (!uploadGovtIdImage || !uploadOwnerImage || !uploadStoreImage) {
+        throw new ApiError(400, "Failed to upload images");
+    }
 
     const seller = await Seller.create({
+        fullName,
+        email,
+        sellerType,
+        phoneNumber,
+        password,
+        brandName,
+        govtID,
+        gstNumber,
+        storeName,
+        govtIDImage: uploadGovtIdImage.secure_url,
+        ownerImage: uploadOwnerImage.secure_url,
+        storeImage: uploadStoreImage.secure_url,
+        address,
+        location
+    });
 
-            fullName: fullName,
-            email: email,
-            sellerType: sellerType,
-            phoneNumber: phoneNumber,
-            password: password,
-            brandName: brandName,
-            govtID: govtID,
-            gstNumber: gstNumber,
-            govtIDImage: uploadGovtIdImage?.url,
-            address: address
-    })
-    
     const createdSeller = await Seller.findById(seller._id).select("-password");
 
-    res.status(201)
-        .json(new ApiResponse(201, { seller: createdSeller }, "Seller created successfully"))
+    res.status(201).json(
+        new ApiResponse(201, { seller: createdSeller }, "Seller created successfully")
+    );
 
-})
+});
 
 const loginSeller = asyncHandler(async(req, res) => {
     const {email, password, phoneNumber} = req.body;
@@ -97,10 +106,14 @@ const loginSeller = asyncHandler(async(req, res) => {
             { email },
             { phoneNumber }
         ]
-    });
+    }).select("+password");
 
     if (!seller) {
         throw new ApiError(404, "Seller not found");
+    }
+
+    if(!seller.isVerified){
+        throw new ApiError(403, "Seller is not verified");
     }
 
     const isPasswordValid = await seller.isPasswordCorrect(password);
@@ -283,7 +296,69 @@ const removeSellerProfile = asyncHandler(async(req, res) => {
 
 })
 
+const getSellers = asyncHandler(async(req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
+    const sellers = await Seller.find().select("-password -refreshToken").skip(skip).limit(limit);
+
+    if(!sellers){
+        throw new ApiError(404, "Sellers Not Found");
+    }
+    const totalSellers = await Seller.countDocuments();
+    res.status(200).json(new ApiResponse(200, {
+        sellers,
+        pagination: {
+            totalSellers,
+            totalPages: Math.ceil(totalSellers / limit),
+        },
+        currentPage: page
+    }, "Sellers fetched successfully"));
+
+})
+
+const getSellerById = asyncHandler(async(req, res) => {
+    const sellerId = req.params.id;
+
+    const seller = await Seller.findById(sellerId).select("-password -refreshToken");
+    if(!seller){
+        throw new ApiError(404, "Seller Not Found");
+    }
+    res.status(200).json(new ApiResponse(200, seller, "Seller fetched successfully"));
+})
+
+const updateVerified = asyncHandler(async(req, res) => {
+    const sellerId = req.params.id;
+
+    const seller = await Seller.findByIdAndUpdate(sellerId, {
+        $set: {
+            isVerified: true
+        }
+    }, { new: true }).select("-password -refreshToken");
+
+    if(!seller){
+        throw new ApiError(404, "Seller Not Found");
+    }
+
+    res.status(200).json(new ApiResponse(200, seller, "Seller verified successfully"));
+})
+
+const blockSeller = asyncHandler(async(req, res) => {
+    const sellerId = req.params.id;
+
+    const seller = await Seller.findByIdAndUpdate(sellerId, {
+        $set: {
+            isVerified: false
+        }
+    }, { new: true }).select("-password -refreshToken");
+
+    if(!seller){
+        throw new ApiError(404, "Seller Not Found");
+    }
+
+    res.status(200).json(new ApiResponse(200, seller, "Seller blocked successfully"));
+})
 
 export {
     registerSeller,
@@ -293,5 +368,9 @@ export {
     updateSellerProfile,
     getSellerProfile,
     refreshTokenHandler,
-    removeSellerProfile
+    removeSellerProfile,
+    getSellers,
+    getSellerById,
+    updateVerified,
+    blockSeller
 }

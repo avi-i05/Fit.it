@@ -26,7 +26,7 @@ router.route('/logout')
 router.route('/refresh-token')
     .post(adminRefreshToken);
 
-router.route('/profile')
+router.route('/me')
     .get(verifyAdminJWT, getAdminProfile);
 
 router.route('/profile/update')

@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
+import slugify from "slugify";
 
 const productSchema = new Schema(
   {
@@ -49,5 +50,28 @@ const productSchema = new Schema(
 );
 
 productSchema.plugin(mongooseAggregatePaginate);
+
+productSchema.pre("validate", async function () {
+
+  if (!this.slug && this.productName) {
+    let baseSlug = slugify(this.productName, {
+      lower: true,
+      strict: true
+    });
+
+    let slug = baseSlug;
+
+    const Product = mongoose.model("Product");
+
+    let count = 1;
+
+    while (await Product.findOne({ slug })) {
+      slug = `${baseSlug}-${count++}`;
+    }
+
+    this.slug = slug;
+  }
+
+});
 
 export const Product = mongoose.model("Product", productSchema);

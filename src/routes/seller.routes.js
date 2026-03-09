@@ -8,8 +8,14 @@ import {
     updateSellerProfile,
     getSellerProfile,
     refreshTokenHandler,
-    removeSellerProfile
+    removeSellerProfile,
+    getSellers,
+    getSellerById,
+    updateVerified,
+    blockSeller
 } from "../controllers/seller.controller.js"
+
+import { verifyAdminJWT } from "../middlewares/adminAuth.middleware.js";
 
 import { verifySellerJWT } from "../middlewares/sellerAuth.middleware.js";
 import { upload } from "../middlewares/upload.middleware.js";
@@ -20,11 +26,15 @@ const router = Router()
 router.route('/register')
     .post(
         upload.fields([
-            {
-                name: "govtIDImage",
-                maxCount: 1
-            }
-        ]), registerSeller);
+  { name: "govtIDImage", maxCount: 1 },
+  { name: "ownerImage", maxCount: 1 },
+  { name: "storeImage", maxCount: 1 }
+]), 
+        registerSeller
+    );
+
+    
+
 
 router.route('/login')
     .post(loginSeller)
@@ -48,5 +58,17 @@ router.route('/refresh-token')
 
 router.route('/remove-profile')
     .delete(verifySellerJWT, removeSellerProfile)
+
+router.route('/all-sellers')
+    .get(getSellers)
+
+router.route('/seller/:id')
+    .get(getSellerById)
+
+router.route('/update-verified/:id')
+    .patch(verifyAdminJWT, updateVerified)
+
+router.route('/block-seller/:id')
+    .patch(verifyAdminJWT, blockSeller)
 
 export { router as sellerRouter }

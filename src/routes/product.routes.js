@@ -6,9 +6,13 @@ import{
     createMultipleProducts,
     updateProduct,
     updateVariant,
+    updateFullProduct,
     getAllProducts,
     getProductsByCategory,
-    getProductsByFilters
+    getProductsByFilters,
+    getSellerProducts,
+    getNearbyProducts,
+    getProductById
 } from "../controllers/product.controller.js";
 import { verifySellerJWT } from "../middlewares/sellerAuth.middleware.js";
 import { upload } from "../middlewares/upload.middleware.js";
@@ -16,7 +20,7 @@ import { upload } from "../middlewares/upload.middleware.js";
 const router = Router();
 
 router.route('/register/single')
-    .post(verifySellerJWT, createSingleProduct)
+    .post(verifySellerJWT,upload.any(), createSingleProduct)
 
 router.route('/register/multiple')
     .post(verifySellerJWT, createMultipleProducts);
@@ -36,4 +40,18 @@ router.route('/update/product/:productId')
 router.route('/update/variant/:variantId')
     .patch(verifySellerJWT, updateVariant);
 
+router.route('/update/full-product/:productId')
+    .patch(verifySellerJWT, upload.any(), updateFullProduct);
+
+
+router.route('/seller-products/:sellerId')
+    .get(getSellerProducts);
+
+
+
+router.route('/nearby')
+    .get(getNearbyProducts);
+
+router.route('/product/:id')
+    .get(getProductById);
 export { router as productRouter };

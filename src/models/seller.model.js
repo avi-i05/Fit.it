@@ -4,6 +4,10 @@ import jwt from "jsonwebtoken";
 
 const sellerSchema = new mongoose.Schema(
   {
+    ownerImage: {
+      type: String,
+      // required: true,
+    },
     fullName: {
       type: String,
       required: true,
@@ -21,10 +25,12 @@ const sellerSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
+      select: false,
     },
     phoneNumber: {
       type: String,
       required: true,
+      unique: true,
     },
     brandName: {
       type: String,
@@ -69,8 +75,31 @@ const sellerSchema = new mongoose.Schema(
         default: "India",
       },
     },
+    storeImage: {
+      type: String,
+      // required: true,
+    },
+    storeName: {
+      type: String,
+      // required: true,
+    },
     refreshToken: {
       type: String,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+      },
     },
   },
   { timestamps: true }
@@ -112,5 +141,7 @@ sellerSchema.methods.generateRefreshToken = function () {
     }
   );
 };
+
+sellerSchema.index({ location: "2dsphere" });
 
 export const Seller = mongoose.model("Seller", sellerSchema);

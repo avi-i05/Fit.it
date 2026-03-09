@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { Product } from "./product.model.js";
+import slugify from "slugify";
 
 const productVariantSchema = new mongoose.Schema(
   {
@@ -48,6 +50,32 @@ const productVariantSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+
+productVariantSchema.pre("validate", async function () {
+
+  if (!this.sku) {
+
+    const product = await Product.findById(this.product);
+
+    const baseSku = slugify(
+      `${product.slug}-${this.size}-${this.color}-${this.audience}`,
+      { lower: true, strict: true }
+    );
+
+    let sku = baseSku;
+    let count = 1;
+
+    const ProductVariant = mongoose.model("ProductVariant");
+
+    while (await ProductVariant.findOne({ sku })) {
+      sku = `${baseSku}-${count++}`;
+    }
+
+    this.sku = sku;
+  }
+
+  
+});
 export const ProductVariant = mongoose.model(
   "ProductVariant",
   productVariantSchema

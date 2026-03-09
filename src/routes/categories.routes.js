@@ -6,7 +6,8 @@ import {
     deleteCategory,
     getAllCategories,
     getCategoryById,
-    getSubCategories
+    getSubCategories,
+    createCategoryWithSubCategory
 } from "../controllers/category.controller.js";
 import { verifyAdminJWT } from "../middlewares/adminAuth.middleware.js";
 
@@ -25,5 +26,8 @@ router.route('/get/all')
 
 router.route('/:id/subcategories')
     .get(getSubCategories); 
+
+router.route('/create/with/subcategories')
+    .post(verifyAdminJWT, createCategoryWithSubCategory)
 
 export { router as categoryRouter };
