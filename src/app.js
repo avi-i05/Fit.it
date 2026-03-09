@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+const allowedOrigins = ["http://localhost:5173", "http://localhost:5174","https://fit-it.onrender.com","https://test-partner.onrender.com"];
 
 const app = express();
 app.use(
