@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174","https://test-admin-frontend-lake.vercel.app"];
+const allowedOrigins = ["http://localhost:5173", "http://localhost:5174","https://test-admin-frontend-lake.vercel.app","https://test-partner-frontend.vercel.app"];
 
 const app = express();
 app.use(
