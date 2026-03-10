@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { ApiError } from "../utils/apiError.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 
 const locationSchema = new mongoose.Schema({
   lat: {

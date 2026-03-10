@@ -1,12 +1,22 @@
 import { Server } from "socket.io";
 
 let io;
+const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+
 
 export const initSocket = (server) => {
 
   io = new Server(server, {
     cors: {
-      origin: ["http://localhost:5173"],
+      origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
       methods: ["GET", "POST"],
       credentials: true
     }
