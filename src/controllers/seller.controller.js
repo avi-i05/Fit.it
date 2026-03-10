@@ -131,7 +131,8 @@ const loginSeller = asyncHandler(async(req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: "none"
     }
 
     res.status(200)
@@ -158,7 +159,8 @@ const logoutSeller = asyncHandler(async(req, res) =>{
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: "none"
     }
 
     res.status(200)
@@ -190,6 +192,12 @@ const refreshTokenHandler = asyncHandler(async(req, res) => {
     }
 
     const { accessToken, refreshToken } = await generateTokens(seller._id);
+
+    const options = {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    }
 
     res.status(200)
         .cookie("accessToken", accessToken, options)
