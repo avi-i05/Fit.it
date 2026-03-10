@@ -2,13 +2,21 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174","https://fit-it.onrender.com","https://test-partner.onrender.com"];
+const allowedOrigins = ["http://localhost:5173", "http://localhost:5174","https://test-admin-frontend-lake.vercel.app"];
 
 const app = express();
 app.use(
   cors({
-    origin:"*",
-    
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
   })
 );
 
