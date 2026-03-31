@@ -94,8 +94,6 @@ const adminLogin = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
-    sameSite: "None"
-=======
     sameSite: "none"
   };
 
@@ -129,11 +127,7 @@ const adminLogout = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
-<<<<<<< HEAD
-    sameSite: "None"
-=======
     sameSite: "none"
->>>>>>> 72852b9b68d734e00f737e3907d7e47e6e96874f
   };
 
   return res
