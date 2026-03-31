@@ -8,6 +8,9 @@ export const verifyAdminJWT = asyncHandler(async (req, res, next) => {
     const token =
       req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
+    console.log("req ", req.cookies.accessToken)
+
+    console.log("token: ",token)
 
 
     if (!token) {
@@ -16,10 +19,14 @@ export const verifyAdminJWT = asyncHandler(async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
+    console.log("decoded: ", decoded)
+
     const admin = await Admin.findById(decoded._id).select(
       "-password -refreshToken"
     );
 
+    console.log("admin: ", admin)
+    
     if (!admin) {
       throw new ApiError(401, "Unauthorized access");
     }
