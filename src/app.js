@@ -2,16 +2,12 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-<<<<<<< HEAD
 const allowedOrigins = [
   process.env.CORS_ORIGIN_CLIENT,
   process.env.CORS_ORIGIN_ADMIN,
   process.env.CORS_ORIGIN_PARTNER,  // Changed from LOGISTIC to PARTNER
   process.env.CORS_ORIGIN_LOGISTIC,
 ];
-=======
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174","https://test-admin-frontend-lake.vercel.app","https://test-partner-frontend.vercel.app"];
->>>>>>> 72852b9b68d734e00f737e3907d7e47e6e96874f
 
 const app = express();
 app.use(
