@@ -6,7 +6,7 @@ const sellerSchema = new mongoose.Schema(
   {
     ownerImage: {
       type: String,
-      // required: true,
+      required: true,
     },
     fullName: {
       type: String,

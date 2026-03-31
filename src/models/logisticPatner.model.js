@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { ApiError } from "../utils/apiError.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
@@ -25,7 +24,31 @@ const logisticPartnerSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
+    partnerImage:{
+      type: String,
+      required: true,
+    },
+    gender: {
+      type: String,
+      enum: ["MALE", "FEMALE"],
+      required: true,
+    },
+    dob: {
+      type: Date,
+      required: true,
+    },
+    age: {
+      type: Number,
+      required: true,
+    },
+    govtId: {
+      type: String,
+      required: true,
+    },
+    govtIdImage: {
+      type: String,
+      required: true,
+    },
     phone: {
       type: String,
       required: true,
@@ -49,7 +72,10 @@ const logisticPartnerSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
+    vehicleImage: {
+      type: String,
+      required: true,
+    },
     address: {
         street: String,
         city: String,
@@ -57,7 +83,6 @@ const logisticPartnerSchema = new mongoose.Schema(
         country: String,
         zipCode: String,
     },
-
     serviceTypes: {
       type: [String],
       enum: ["EXPRESS", "FEATURED", "BOTH"],
@@ -66,7 +91,7 @@ const logisticPartnerSchema = new mongoose.Schema(
     availabilityStatus: {
       type: String,
       enum: ["IDLE", "DELIVERING", "OFFLINE"],
-      default: "IDLE",
+      default: "OFFLINE",
     },
 
     currentLocation: locationSchema,
@@ -85,12 +110,11 @@ const logisticPartnerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-logisticPartnerSchema.pre("save", async function (next) {
+logisticPartnerSchema.pre("save", async function () {
   if (!this.isModified("password")) {
-    return next();
+    return ;
   }
   this.password = await bcrypt.hash(this.password, 10);
-  next();
 });
 
 logisticPartnerSchema.methods.isPasswordCorrect = async function (password) {
@@ -100,7 +124,7 @@ logisticPartnerSchema.methods.isPasswordCorrect = async function (password) {
 logisticPartnerSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
-      id: this._id,
+      _id: this._id,
       email: this.email,
     },
     process.env.ACCESS_TOKEN_SECRET,

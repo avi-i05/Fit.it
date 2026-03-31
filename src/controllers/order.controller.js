@@ -1,4 +1,6 @@
 import { Order } from "../models/order.model.js";
+import { Seller } from "../models/seller.model.js";
+import { LogisticPartner } from "../models/logisticPatner.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
@@ -6,15 +8,85 @@ import { getIO } from "../socket/socket.js";
 import mongoose from "mongoose";
 
 
+export const createOrders = asyncHandler(async (req, res) => {
+  const { orders } = req.body;
+
+  if (!orders || !Array.isArray(orders) || orders.length === 0) {
+    throw new ApiError(400, "Orders array is required");
+  }
+
+  for (const order of orders) {
+    const { consumer, seller, items, totalAmount, orderType, shippingAddress, deliveryLocation } = order;
+    
+    if ([consumer, seller, items, totalAmount, orderType, shippingAddress, deliveryLocation].some(
+      (field) => field === ""
+    )) {
+      throw new ApiError(400, "All fields are required for each order");
+    }
+  }
+
+  const sellerIds = [...new Set(orders.map(order => order.seller))];
+  const sellers = await Seller.find({ _id: { $in: sellerIds } });
+  
+  if (sellers.length !== sellerIds.length) {
+    throw new ApiError(404, "One or more sellers not found");
+  }
+
+  const createdOrders = [];
+  const sellerMap = sellers.reduce((map, seller) => {
+    map[seller._id.toString()] = seller;
+    return map;
+  }, {});
+
+  for (const orderData of orders) {
+    const sellerData = sellerMap[orderData.seller];
+    
+    const order = await Order.create({
+      consumer: orderData.consumer,
+      seller: orderData.seller,
+      items: orderData.items,
+      totalAmount: orderData.totalAmount,
+      orderType: orderData.orderType,
+      shippingAddress: orderData.shippingAddress,
+      deliveryLocation: orderData.deliveryLocation,
+      pickupLocation: sellerData.location,
+    });
+
+    // Notify the seller about the new order
+    const io = getIO();
+    io.to(`seller_${sellerData._id.toString()}`).emit("new-order", order);
+    io.to("admin_room").emit("new-order", order); // Notify admin as well
+
+    createdOrders.push(order);
+  }
+
+  if (createdOrders.length === 0) {
+    throw new ApiError(400, "No orders were created");
+  }
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, { 
+      orders: createdOrders,
+      totalOrders: createdOrders.length,
+      message: `${createdOrders.length} orders created successfully from ${sellerIds.length} different stores`
+    }, "Orders created successfully"));
+});
+
 export const createOrder = asyncHandler(async (req, res) => {
-  const { consumer, seller, items, totalAmount, orderType, shippingAddress } = req.body;
+  const { consumer, seller, items, totalAmount, orderType, shippingAddress, deliveryLocation } = req.body;
 
   if (
-    [consumer, seller, items, totalAmount, orderType, shippingAddress].some(
+    [consumer, seller, items, totalAmount, orderType, shippingAddress, deliveryLocation].some(
       (field) => field === ""
     )
   ) {
     throw new ApiError(400, "All fields are required");
+  }
+
+  const sellerData = await Seller.findById(seller);
+  if (!sellerData) {
+    throw new ApiError(404, "Seller not found");
   }
 
   const order = await Order.create({
@@ -24,12 +96,13 @@ export const createOrder = asyncHandler(async (req, res) => {
     totalAmount,
     orderType,
     shippingAddress,
+    deliveryLocation,
+    pickupLocation: sellerData.location,
   });
 
-   const io = getIO();
-
-  // notify seller
-  io.emit("new-order", order);
+  const io = getIO();
+  io.to(`seller_${seller.toString()}`).emit("new-order", order);
+  io.to("admin_room").emit("new-order", order); // Notify admin as well
 
   if (!order) {
     throw new ApiError(400, "Order not created");
@@ -177,9 +250,29 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid order status");
   }
 
+  const updateData = { OrderStatus: status };
+
+  // If a logistic partner is accepting the order, assign them to it and update partner status
+  if (status === "accepted" && req.logisticPartner) {
+    updateData.logisticPartner = req.logisticPartner._id;
+    
+    await LogisticPartner.findByIdAndUpdate(req.logisticPartner._id, {
+      availabilityStatus: "DELIVERING",
+      currentOrderId: id
+    });
+  }
+
+  // If order is delivered, free up the partner
+  if (status === "delivered" && req.logisticPartner) {
+    await LogisticPartner.findByIdAndUpdate(req.logisticPartner._id, {
+      availabilityStatus: "IDLE",
+      currentOrderId: null
+    });
+  }
+
   const order = await Order.findByIdAndUpdate(
     id,
-    { OrderStatus: status },
+    updateData,
     { new: true }
   )
     .populate("consumer", "displayName email")
@@ -244,5 +337,21 @@ export const getAllOrdersForSeller = asyncHandler(async (req, res) => {
     .status(200)
     .json(
       new ApiResponse(200, orders, "Orders for seller fetched successfully")
+    );
+});
+
+export const getOrdersForPartner = asyncHandler(async (req, res) => {
+  const { partnerId } = req.params;
+  const orders = await Order.find({ logisticPartner: partnerId })
+    .populate("consumer", "displayName email")
+    .populate("seller", "brandName email storeName")
+    .populate("items.product", "productName")
+    .populate("shippingAddress", "street city state zipCode country")
+    .sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, orders, "Partner order history fetched successfully")
     );
 });

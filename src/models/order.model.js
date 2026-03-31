@@ -42,15 +42,25 @@ const orderSchema = new mongoose.Schema(
 
 
     deliveryLocation: {
-      lat: {
-        type: Number,
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
       },
-      lng: {
-        type: Number,
+      coordinates: {
+        type: [Number], // [lng, lat]
+        required: true,
       },
-      updatedAt: {
-        type: Date,
-        default: Date.now,
+    },
+
+    pickupLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
       },
     },
 
@@ -68,11 +78,20 @@ const orderSchema = new mongoose.Schema(
 
     OrderStatus: {
       type: String,
-      enum: ["pending", "shipped", "delivered", "cancelled"],
+      enum: ["pending", "accepted", "ready_to_pickup", "picked_up", "out_for_delivery", "delivered", "cancelled"],
       default: "pending",
+    },
+
+    logisticPartner: {
+      type: Schema.Types.ObjectId,
+      ref: "LogisticPartner",
+      default: null,
     },
   },
   { timestamps: true }
 );
+
+orderSchema.index({ deliveryLocation: "2dsphere" });
+orderSchema.index({ pickupLocation: "2dsphere" });
 
 export const Order = mongoose.model("Order", orderSchema);

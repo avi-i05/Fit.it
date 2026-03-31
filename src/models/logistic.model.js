@@ -1,13 +1,5 @@
 import mongoose from "mongoose";
 
-const locationSchema = new mongoose.Schema({
-  lat: Number,
-  lng: Number,
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
 
 const logisticsSchema = new mongoose.Schema(
   {
@@ -42,7 +34,6 @@ const logisticsSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: "LogisticPartner",
       },
-      currentLocation: locationSchema,
       status: {
         type: String,
         enum: [

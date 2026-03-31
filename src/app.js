@@ -2,7 +2,12 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+const allowedOrigins = [
+  process.env.CORS_ORIGIN_CLIENT,
+  process.env.CORS_ORIGIN_ADMIN,
+  process.env.CORS_ORIGIN_PARTNER,  // Changed from LOGISTIC to PARTNER
+  process.env.CORS_ORIGIN_LOGISTIC,
+];
 
 const app = express();
 app.use(

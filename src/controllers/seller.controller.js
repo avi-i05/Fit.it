@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import { Seller } from "../models/seller.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { getIO } from "../socket/socket.js";
 
 
 const generateTokens = async(sellerId) => {
@@ -86,7 +87,16 @@ const registerSeller = asyncHandler(async (req, res) => {
         location
     });
 
+
+
     const createdSeller = await Seller.findById(seller._id).select("-password");
+
+    const io = getIO();
+    io.to("admin_room").emit("new-seller", {
+        seller: createdSeller,
+        message: "New seller registered",
+        timestamp: new Date()
+    });
 
     res.status(201).json(
         new ApiResponse(201, { seller: createdSeller }, "Seller created successfully")
@@ -131,7 +141,8 @@ const loginSeller = asyncHandler(async(req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: "None"
     }
 
     res.status(200)
@@ -158,7 +169,8 @@ const logoutSeller = asyncHandler(async(req, res) =>{
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: "None"
     }
 
     res.status(200)
